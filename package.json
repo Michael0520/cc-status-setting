@@ -1,0 +1,62 @@
+{
+  "name": "@michael0520/claude-status",
+  "version": "2.0.0",
+  "description": "Modern TypeScript CLI for Claude Code status line management",
+  "type": "module",
+  "packageManager": "pnpm@10.14.0",
+  "bin": {
+    "claude-status": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "tsup && pnpm build:shell",
+    "build:shell": "node build/generate-shell.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "release": "bumpp && pnpm publish",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "cac": "^6.7.14",
+    "execa": "^8.0.1",
+    "fast-glob": "^3.3.2",
+    "fs-extra": "^11.2.0",
+    "kolorist": "^1.8.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.11.16",
+    "@types/prompts": "^2.4.9",
+    "bumpp": "^9.3.0",
+    "oxlint": "^1.14.0",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Michael0520/cc-status-setting.git"
+  },
+  "keywords": [
+    "claude-code",
+    "status-line",
+    "cli",
+    "typescript",
+    "macos"
+  ],
+  "author": "Michael0520 <michael860520@gmail.com>",
+  "license": "MIT"
+}

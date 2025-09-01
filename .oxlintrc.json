@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/config/schema.json",
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn", 
+    "pedantic": "off",
+    "perf": "warn",
+    "style": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "typescript/no-unused-vars": "error",
+    "import/no-duplicates": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "no-console": "off",
+    "func-style": "off",
+    "max-params": "off",
+    "sort-keys": "off",
+    "no-magic-numbers": "off",
+    "sort-imports": "off",
+    "no-await-in-loop": "warn",
+    "no-ternary": "off",
+    "complexity": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "globals": {
+    "NodeJS": "readonly"
+  },
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/.nuxt/**",
+    "**/.vercel/**",
+    "**/.netlify/**"
+  ]
+}
