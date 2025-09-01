@@ -74,12 +74,13 @@ install_dependencies() {
         print_success "jq already installed"
     fi
     
-    # Install ccusage (optional)
+    # Install ccusage (required for cost tracking)
     if ! command -v ccusage &> /dev/null; then
-        print_warning "ccusage not found (cost tracking will show 'N/A')"
-        print_warning "Install manually: brew install ccusage"
-    else
+        print_status "Installing ccusage for cost tracking..."
+        brew install ccusage
         print_success "ccusage installed"
+    else
+        print_success "ccusage already installed"
     fi
 }
 

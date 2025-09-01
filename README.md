@@ -9,7 +9,7 @@ Your Claude Code status line will show:
 - 🕐 **Current Time**
 - 🤖 **Claude Model** 
 - 🌿 **Git Branch**
-- 💰 **Daily Cost** (requires ccusage)
+- 💰 **Daily Cost** (auto-installed)
 
 Example: `🕐 20:53:49 | 🤖 Sonnet 4 | 🌿 main | 💰 $16.67 today`
 
@@ -35,9 +35,9 @@ That's it! Everything else is auto-installed.
 - Restart Claude Code
 - Check: `cat ~/.claude/settings.json`
 
-**"ccusage not installed" showing?**
-- Cost will show "N/A" (this is normal)
-- Optional: Install for cost tracking: `brew install ccusage`
+**Cost showing "N/A"?**
+- ccusage should be auto-installed during setup
+- If still showing "N/A", manually run: `brew install ccusage`
 
 **Restore backup:**
 ```bash
