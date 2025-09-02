@@ -133,11 +133,6 @@ export async function installCommand(options: InstallOptions = {}) {
     console.log(cyan('Your status line will show:'))
     console.log('🕐 Time | 🤖 Claude Model | 🌿 Git Branch | 💰 Daily Cost')
     console.log()
-    console.log(yellow('📝 Next steps:'))
-    console.log('1. Restart Claude Code to see the new status line')
-    console.log('2. Run `claude-status test` to verify everything works')
-    console.log('3. Run `claude-status config` to customize settings')
-    console.log()
 
   } catch (error) {
     logger.error(`Installation failed: ${error instanceof Error ? error.message : String(error)}`)
