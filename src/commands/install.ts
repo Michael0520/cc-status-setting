@@ -156,7 +156,7 @@ async function testStatusline() {
     const { execa } = await import('execa')
     const { stdout } = await execa('bash', [paths.statusline], {
       input: testJson,
-      timeout: 5000,
+      timeout: 10000, // Increased timeout for ccusage daily (3-5s execution)
     })
 
     if (stdout.includes('🕐') && stdout.includes('🤖')) {

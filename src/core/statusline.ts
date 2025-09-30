@@ -22,41 +22,22 @@ RESET='${statusColors.reset}'
 TIME=$(date +%H:%M:%S)
 
 # Get model name from JSON input (passed by Claude Code)
-MODEL=$(echo "$JSON_INPUT" | jq -r '.model.display_name // "Unknown Model"' 2>/dev/null || echo "Unknown Model")
+# Use printf instead of echo for better security (no escape sequence interpretation)
+MODEL=$(printf '%s' "$JSON_INPUT" | jq -r '.model.display_name // "Unknown Model"' 2>/dev/null || echo "Unknown Model")
 
 # Get current git branch
 GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "not in git")
 
 # Get usage credits from ccusage
 if command -v ccusage &> /dev/null; then
-    # Build complete JSON for ccusage statusline if needed fields are missing
-    if echo "$JSON_INPUT" | jq -e '.session_id and .transcript_path and .workspace' > /dev/null 2>&1; then
-        # Claude Code provided complete JSON
-        CCUSAGE_OUTPUT=$(echo "$JSON_INPUT" | ccusage statusline 2>/dev/null || echo "")
-    else
-        # Build minimal JSON with required fields
-        CWD=$(pwd)
-        COMPLETE_JSON=$(echo "$JSON_INPUT" | jq --arg cwd "$CWD" '
-            . + {
-                session_id: "claude-code-session",
-                transcript_path: "/tmp/claude-transcript",
-                cwd: $cwd,
-                workspace: {
-                    current_dir: $cwd,
-                    project_dir: $cwd
-                }
-            } | 
-            if .model and .model.display_name and (.model.id | not) then
-                .model.id = "claude-3-5-sonnet"
-            else . end
-        ' 2>/dev/null || echo '{}')
-        CCUSAGE_OUTPUT=$(echo "$COMPLETE_JSON" | ccusage statusline 2>/dev/null || echo "")
-    fi
-    
-    # Extract just the money part from ccusage output (e.g., "$3.18 today")
-    if [ -n "$CCUSAGE_OUTPUT" ]; then
-        # Extract the cost information (looking for patterns like $X.XX today)
-        CREDITS=$(echo "$CCUSAGE_OUTPUT" | grep -oE '\\$[0-9]+\\.[0-9]+ today' | head -1 || echo "N/A")
+    # Use ccusage daily command with stdin closed to prevent hanging
+    # This is much faster and more reliable than ccusage statusline
+    TODAY=$(date +%m-%d)
+    # Extract cost from ccusage daily output (safe: TODAY format is always MM-DD)
+    COST=$(ccusage daily --no-color --no-offline < /dev/null 2>&1 | grep -B1 "\${TODAY}" | grep -oE '\\$[0-9]+\\.[0-9]+' | tail -1)
+
+    if [ -n "$COST" ]; then
+        CREDITS="$COST today"
     else
         CREDITS="N/A"
     fi
