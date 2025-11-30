@@ -28,21 +28,12 @@ MODEL=$(printf '%s' "$JSON_INPUT" | jq -r '.model.display_name // "Unknown Model
 # Get current git branch
 GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "not in git")
 
-# Get usage credits from ccusage
-if command -v ccusage &> /dev/null; then
-    # Use ccusage daily command with stdin closed to prevent hanging
-    # This is much faster and more reliable than ccusage statusline
-    TODAY=$(date +%m-%d)
-    # Extract cost from ccusage daily output (safe: TODAY format is always MM-DD)
-    COST=$(ccusage daily --no-color --no-offline < /dev/null 2>&1 | grep -B1 "\${TODAY}" | grep -oE '\\$[0-9]+\\.[0-9]+' | tail -1)
-
-    if [ -n "$COST" ]; then
-        CREDITS="$COST today"
-    else
-        CREDITS="N/A"
-    fi
+# Get cost from Claude Code JSON input (built-in, no external tools needed)
+COST=$(printf '%s' "$JSON_INPUT" | jq -r '.cost.total_cost_usd // 0' 2>/dev/null || echo "0")
+if [ "$COST" != "0" ] && [ "$COST" != "null" ] && [ -n "$COST" ]; then
+    CREDITS=$(printf '$%.2f' "$COST")
 else
-    CREDITS="ccusage not installed"
+    CREDITS="\\$0.00"
 fi
 
 # Output the formatted status line with icons

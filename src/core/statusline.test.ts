@@ -6,7 +6,7 @@ describe('statusline core', () => {
     expect(statuslineTemplate).toContain('#!/bin/bash')
     expect(statuslineTemplate).toContain('TIME=$(date +%H:%M:%S)')
     expect(statuslineTemplate).toContain('git branch --show-current')
-    expect(statuslineTemplate).toContain('ccusage statusline')
+    expect(statuslineTemplate).toContain('.cost.total_cost_usd')
     expect(statuslineTemplate).toContain('echo -e')
   })
 

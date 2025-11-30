@@ -74,14 +74,8 @@ install_dependencies() {
         print_success "jq already installed"
     fi
     
-    # Install ccusage (required for cost tracking)
-    if ! command -v ccusage &> /dev/null; then
-        print_status "Installing ccusage for cost tracking..."
-        brew install ccusage
-        print_success "ccusage installed"
-    else
-        print_success "ccusage already installed"
-    fi
+    # Note: ccusage is no longer required - Claude Code provides cost data via JSON
+    print_success "All dependencies installed"
 }
 
 # Create Claude directory if it doesn't exist
@@ -133,46 +127,18 @@ RESET='\033[0m'      # Reset color
 TIME=$(date +%H:%M:%S)
 
 # Get model name from JSON input (passed by Claude Code)
-MODEL=$(echo "$JSON_INPUT" | jq -r '.model.display_name // "Unknown Model"' 2>/dev/null || echo "Unknown Model")
+# Use printf instead of echo for better security (no escape sequence interpretation)
+MODEL=$(printf '%s' "$JSON_INPUT" | jq -r '.model.display_name // "Unknown Model"' 2>/dev/null || echo "Unknown Model")
 
 # Get current git branch
 GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "not in git")
 
-# Get usage credits from ccusage
-if command -v ccusage &> /dev/null; then
-    # Build complete JSON for ccusage statusline if needed fields are missing
-    if echo "$JSON_INPUT" | jq -e '.session_id and .transcript_path and .workspace' > /dev/null 2>&1; then
-        # Claude Code provided complete JSON
-        CCUSAGE_OUTPUT=$(echo "$JSON_INPUT" | ccusage statusline 2>/dev/null || echo "")
-    else
-        # Build minimal JSON with required fields
-        CWD=$(pwd)
-        COMPLETE_JSON=$(echo "$JSON_INPUT" | jq --arg cwd "$CWD" '
-            . + {
-                session_id: "claude-code-session",
-                transcript_path: "/tmp/claude-transcript",
-                cwd: $cwd,
-                workspace: {
-                    current_dir: $cwd,
-                    project_dir: $cwd
-                }
-            } | 
-            if .model and .model.display_name and (.model.id | not) then
-                .model.id = "claude-3-5-sonnet"
-            else . end
-        ' 2>/dev/null || echo '{}')
-        CCUSAGE_OUTPUT=$(echo "$COMPLETE_JSON" | ccusage statusline 2>/dev/null || echo "")
-    fi
-    
-    # Extract just the money part from ccusage output (e.g., "$3.18 today")
-    if [ -n "$CCUSAGE_OUTPUT" ]; then
-        # Extract the cost information (looking for patterns like $X.XX today)
-        CREDITS=$(echo "$CCUSAGE_OUTPUT" | grep -oE '\$[0-9]+\.[0-9]+ today' | head -1 || echo "N/A")
-    else
-        CREDITS="N/A"
-    fi
+# Get cost from Claude Code JSON input (built-in, no external tools needed)
+COST=$(printf '%s' "$JSON_INPUT" | jq -r '.cost.total_cost_usd // 0' 2>/dev/null || echo "0")
+if [ "$COST" != "0" ] && [ "$COST" != "null" ] && [ -n "$COST" ]; then
+    CREDITS=$(printf '$%.2f' "$COST")
 else
-    CREDITS="ccusage not installed"
+    CREDITS="\$0.00"
 fi
 
 # Output the formatted status line with icons

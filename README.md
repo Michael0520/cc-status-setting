@@ -1,15 +1,15 @@
 # Claude Code Status Line
 
-Enhanced Claude Code status line with time, model, git branch, and daily cost.
+Enhanced Claude Code status line with time, model, git branch, and session cost.
 
 ## Features
 
 - 🕐 Current Time
-- 🤖 Claude Model 
+- 🤖 Claude Model
 - 🌿 Git Branch
-- 💰 Daily Cost
+- 💰 Session Cost (using Claude Code's built-in cost data)
 
-Example: `🕐 20:53:49 | 🤖 Sonnet 4 | 🌿 main | 💰 $16.67 today`
+Example: `🕐 20:53:49 | 🤖 Sonnet 4 | 🌿 main | 💰 $1.23`
 
 ## Installation
 
@@ -37,8 +37,9 @@ chmod +x setup-claude-statusline.sh && ./setup-claude-statusline.sh
 
 - macOS
 - Claude Code installed
+- `jq` (auto-installed via Homebrew)
 
-Everything else is auto-installed.
+No external cost-tracking tools required - uses Claude Code's built-in JSON metadata.
 
 ## CLI Commands
 
