@@ -61,3 +61,4 @@ npx @michael0520/claude-status --help         # Help
 ```bash
 claude-status uninstall  # Follow restore prompts
 ```
+
