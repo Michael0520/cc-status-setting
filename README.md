@@ -45,7 +45,20 @@ Full-featured Claude Code statusline with 5-line display, cost tracking, MCP mon
 
 ## 🚀 Installation
 
-### Quick Install (Recommended)
+### NPM Package (Recommended)
+
+```bash
+npx @michael0520/claude-status
+```
+
+The installer will:
+- ✅ Check system requirements (macOS only)
+- ✅ Install dependencies (Homebrew, jq)
+- ✅ Backup existing statusline (if any)
+- ✅ Install complete statusline v2.14.0 system
+- ✅ Update Claude Code settings
+
+### Alternative: Shell Script
 
 ```bash
 curl -O https://raw.githubusercontent.com/Michael0520/cc-status-setting/main/setup-claude-statusline.sh
@@ -53,22 +66,17 @@ chmod +x setup-claude-statusline.sh
 ./setup-claude-statusline.sh
 ```
 
-### NPM Package (Coming Soon)
-
-```bash
-npx @michael0520/claude-status install
-```
-
 ## 📋 Requirements
 
 - **macOS** (primary support)
 - **Claude Code** installed
-- **bash 4.0+** (auto-installed via Homebrew)
-- **jq** (auto-installed via Homebrew)
+- **Node.js 18+** (for NPM installation)
+- **jq** (auto-installed if missing)
 
-Optional:
-- **ccusage** - For enhanced cost tracking
-- **Chrome DevTools MCP** - For MCP monitoring
+Optional (auto-detected):
+- **bash 4.0+** - Enhanced features
+- **ccusage** - Cost tracking
+- **Chrome DevTools MCP** - MCP monitoring
 
 ## 🎨 Customization
 
@@ -122,6 +130,24 @@ display.line5.components = ["mcp_status", "usage_reset"]
 ```
 
 ## 🔧 Management Commands
+
+### NPM CLI Commands
+
+```bash
+# Install/reinstall statusline
+npx @michael0520/claude-status
+
+# Configure settings
+npx @michael0520/claude-status config
+
+# Test installation
+npx @michael0520/claude-status test
+
+# Uninstall
+npx @michael0520/claude-status uninstall
+```
+
+### Statusline Commands
 
 ```bash
 # Health check

@@ -1,76 +1,37 @@
-import { writeFile } from 'node:fs/promises'
-import { statusColors } from '../utils/colors'
+import { cp, mkdir, chmod } from 'node:fs/promises'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { paths } from '../utils/fs'
 
-export const statuslineTemplate = `#!/bin/bash
+/**
+ * Install complete statusline system v2.14.0
+ * Copies the entire statusline directory from the package to ~/.claude/statusline
+ */
+export async function installStatuslineSystem(): Promise<void> {
+  // Find the statusline directory in the package
+  // The statusline directory should be at the package root
+  // When built: dist/ is created, but statusline/ stays at root
+  // So from dist/index.js, we need to go up one level to find statusline/
 
-# Read JSON from stdin if no argument provided
-if [ -z "$1" ]; then
-    JSON_INPUT=$(cat)
-else
-    JSON_INPUT="$1"
-fi
+  // Get the directory containing the compiled code (dist/)
+  const distDir = dirname(fileURLToPath(import.meta.url))
 
-# Color codes
-GRAY='${statusColors.time}'
-PURPLE='${statusColors.model}'
-GREEN='${statusColors.git}'
-YELLOW='${statusColors.cost}'
-RESET='${statusColors.reset}'
+  // Go up one level to the package root
+  const packageRoot = join(distDir, '..')
 
-# Get current time
-TIME=$(date +%H:%M:%S)
+  // The statusline directory is in the package root
+  const statuslineSource = join(packageRoot, 'statusline')
 
-# Get model name from JSON input (passed by Claude Code)
-# Use printf instead of echo for better security (no escape sequence interpretation)
-MODEL=$(printf '%s' "$JSON_INPUT" | jq -r '.model.display_name // "Unknown Model"' 2>/dev/null || echo "Unknown Model")
+  // Create target directory
+  await mkdir(paths.statuslineDir, { recursive: true })
 
-# Get current git branch
-GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "not in git")
+  // Copy entire statusline directory
+  await cp(statuslineSource, paths.statuslineDir, {
+    recursive: true,
+    force: true,
+  })
 
-# Get cost from Claude Code JSON input (built-in, no external tools needed)
-COST=$(printf '%s' "$JSON_INPUT" | jq -r '.cost.total_cost_usd // 0' 2>/dev/null || echo "0")
-if [ "$COST" != "0" ] && [ "$COST" != "null" ] && [ -n "$COST" ]; then
-    CREDITS=$(printf '$%.2f' "$COST")
-else
-    CREDITS="\\$0.00"
-fi
-
-# Output the formatted status line with icons
-echo -e "\${GRAY}🕐 \${TIME}\${RESET} | \${PURPLE}🤖 \${MODEL}\${RESET} | \${GREEN}🌿 \${GIT_BRANCH}\${RESET} | \${YELLOW}💰 \${CREDITS}\${RESET}"
-`
-
-export async function createStatuslineScript(): Promise<void> {
-  await writeFile(paths.statusline, statuslineTemplate, 'utf-8')
-  
-  // Make script executable
-  await import('node:fs').then(fs => 
-    fs.promises.chmod(paths.statusline, 0o755)
-  )
-}
-
-export interface StatuslineConfig {
-  showTime: boolean
-  showModel: boolean
-  showGit: boolean
-  showCost: boolean
-  colors: {
-    time: string
-    model: string
-    git: string
-    cost: string
-  }
-}
-
-export const defaultConfig: StatuslineConfig = {
-  showTime: true,
-  showModel: true,
-  showGit: true,
-  showCost: true,
-  colors: {
-    time: statusColors.time,
-    model: statusColors.model,
-    git: statusColors.git,
-    cost: statusColors.cost,
-  },
+  // Make statusline.sh executable
+  const statuslineScript = join(paths.statuslineDir, 'statusline.sh')
+  await chmod(statuslineScript, 0o755)
 }

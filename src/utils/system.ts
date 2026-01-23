@@ -19,16 +19,12 @@ export async function getSystemInfo() {
   const isMac = isMacOS()
   const hasHomebrew = await commandExists('brew')
   const hasJq = await commandExists('jq')
-  const hasCcusage = await commandExists('ccusage')
-  const hasGit = await commandExists('git')
-  
+
   return {
     platform: platform(),
     isMacOS: isMac,
     homebrew: hasHomebrew,
     jq: hasJq,
-    ccusage: hasCcusage,
-    git: hasGit,
   }
 }
 

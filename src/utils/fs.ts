@@ -8,6 +8,7 @@ export const paths = {
   claude: join(homedir(), '.claude'),
   settings: join(homedir(), '.claude', 'settings.json'),
   statusline: join(homedir(), '.claude', 'statusline-command.sh'),
+  statuslineDir: join(homedir(), '.claude', 'statusline'),
 } as const
 
 export async function fileExists(path: string): Promise<boolean> {

@@ -1,9 +1,9 @@
 import { green, cyan, yellow } from 'kolorist'
 import prompts from 'prompts'
 import { logger } from '../utils/colors'
-import { fileExists, paths, readJsonFile, writeJsonFile, createBackup } from '../utils/fs'
-import { getSystemInfo, installHomebrew, installWithBrew, commandExists } from '../utils/system'
-import { createStatuslineScript } from '../core/statusline'
+import { fileExists, paths, readJsonFile, writeJsonFile } from '../utils/fs'
+import { getSystemInfo, installHomebrew, installWithBrew } from '../utils/system'
+import { installStatuslineSystem } from '../core/statusline'
 
 interface InstallOptions {
   force?: boolean
@@ -28,101 +28,78 @@ export async function installCommand(options: InstallOptions = {}) {
     // Step 1: System verification
     logger.step('Checking system requirements...')
     const systemInfo = await getSystemInfo()
-    
+
     if (!systemInfo.isMacOS) {
       logger.error('This tool is designed for macOS only')
       process.exit(1)
     }
-    
+
     logger.success('Running on macOS')
 
     // Step 2: Check for existing installation
-    if (!options.force && await fileExists(paths.statusline)) {
+    if (!options.force && await fileExists(paths.statuslineDir)) {
       const { shouldContinue } = await prompts({
         type: 'confirm',
         name: 'shouldContinue',
         message: 'Status line already installed. Continue anyway?',
         initial: false,
       })
-      
+
       if (!shouldContinue) {
         logger.info('Installation cancelled')
         return
       }
     }
 
-    // Step 3: Install dependencies
-    logger.step('Installing dependencies...')
-    
-    // Install Homebrew if needed
+    // Step 3: Install jq dependency
+    logger.step('Checking dependencies...')
+
     if (!systemInfo.homebrew) {
       logger.step('Installing Homebrew...')
       await installHomebrew()
       logger.success('Homebrew installed')
     } else {
-      logger.success('Homebrew already installed')
+      logger.success('Homebrew available')
     }
 
-    // Install jq
     if (!systemInfo.jq) {
       logger.step('Installing jq...')
       await installWithBrew('jq')
       logger.success('jq installed')
     } else {
-      logger.success('jq already installed')
+      logger.success('jq available')
     }
 
-    // Install ccusage
-    if (!systemInfo.ccusage) {
-      logger.step('Installing ccusage for cost tracking...')
-      try {
-        await installWithBrew('ccusage')
-        logger.success('ccusage installed')
-      } catch {
-        logger.warn('Failed to install ccusage - cost tracking will show N/A')
-        logger.dim('You can install it manually later: brew install ccusage')
-      }
-    } else {
-      logger.success('ccusage already installed')
+    // Step 4: Backup existing statusline
+    if (await fileExists(paths.statuslineDir)) {
+      logger.step('Backing up existing statusline...')
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_').split('.')[0]
+      const backupPath = `${paths.statuslineDir}.backup.${timestamp}`
+      const { execa } = await import('execa')
+      await execa('mv', [paths.statuslineDir, backupPath])
+      logger.success(`Backup: ${backupPath.replace(paths.home, '~')}`)
     }
 
-    // Step 4: Create backup
-    if (await fileExists(paths.settings)) {
-      logger.step('Creating backup...')
-      const backupPath = await createBackup(paths.settings)
-      logger.success(`Settings backed up to ${backupPath.replace(paths.home, '~')}`)
-    }
-
-    // Step 5: Create statusline script
-    logger.step('Creating status line script...')
-    await createStatuslineScript()
-    logger.success('Status line script created')
+    // Step 5: Install statusline system
+    logger.step('Installing statusline v2.14.0...')
+    await installStatuslineSystem()
+    logger.success('Statusline installed')
 
     // Step 6: Update Claude Code settings
-    logger.step('Updating Claude Code settings...')
-    
+    logger.step('Updating settings...')
+
     const existingSettings = await readJsonFile<ClaudeSettings>(paths.settings) || {}
-    
+
     const newSettings: ClaudeSettings = {
       ...existingSettings,
       statusLine: {
         type: 'command',
-        command: `bash ${paths.statusline}`,
+        command: `bash ${paths.statuslineDir}/statusline.sh`,
       },
     }
 
     await writeJsonFile(paths.settings, newSettings)
-    logger.success('Claude Code settings updated')
-
-    // Step 7: Test installation
-    logger.step('Testing installation...')
-    const testResult = await testStatusline()
-    
-    if (testResult.success) {
-      logger.success('Installation test passed')
-    } else {
-      logger.warn(`Test warning: ${testResult.error}`)
-    }
+    logger.success('Settings updated')
 
     // Success message
     console.log()
@@ -130,8 +107,17 @@ export async function installCommand(options: InstallOptions = {}) {
     console.log(green('✅ Installation Complete!'))
     console.log(green('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
     console.log()
-    console.log(cyan('Your status line will show:'))
-    console.log('🕐 Time | 🤖 Claude Model | 🌿 Git Branch | 💰 Daily Cost')
+    console.log(cyan('✨ Statusline v2.14.0 Features:'))
+    console.log('  • 5-line rich display')
+    console.log('  • Cost tracking (5 dimensions)')
+    console.log('  • MCP server monitoring')
+    console.log('  • Context window usage')
+    console.log('  • Catppuccin theme')
+    console.log()
+    console.log(yellow('⚠️  Restart Claude Code to activate'))
+    console.log()
+    console.log(cyan('📝 Customize:'))
+    console.log(`  ${paths.statuslineDir.replace(paths.home, '~')}/Config.toml`)
     console.log()
 
   } catch (error) {
@@ -139,35 +125,8 @@ export async function installCommand(options: InstallOptions = {}) {
     console.log()
     console.log(yellow('💡 Troubleshooting:'))
     console.log('1. Ensure you have admin privileges')
-    console.log('2. Check your internet connection')
-    console.log('3. Run `claude-status test` for more details')
+    console.log('2. Check internet connection')
+    console.log('3. Report issue: github.com/Michael0520/cc-status-setting')
     process.exit(1)
-  }
-}
-
-async function testStatusline() {
-  try {
-    if (!await commandExists('jq')) {
-      return { success: false, error: 'jq not found' }
-    }
-
-    // Test with sample JSON
-    const testJson = JSON.stringify({ model: { display_name: 'Test Model' } })
-    const { execa } = await import('execa')
-    const { stdout } = await execa('bash', [paths.statusline], {
-      input: testJson,
-      timeout: 10000, // Increased timeout for ccusage daily (3-5s execution)
-    })
-
-    if (stdout.includes('🕐') && stdout.includes('🤖')) {
-      return { success: true }
-    } else {
-      return { success: false, error: 'Unexpected output format' }
-    }
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@michael0520/claude-status",
-  "version": "3.0.3",
+  "version": "3.1.0",
   "description": "Modern TypeScript CLI for Claude Code status line management",
   "type": "module",
   "packageManager": "pnpm@10.14.0",
@@ -8,7 +8,8 @@
     "claude-status": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "statusline"
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
