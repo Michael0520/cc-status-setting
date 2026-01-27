@@ -81,7 +81,7 @@ export async function installCommand(options: InstallOptions = {}) {
     }
 
     // Step 5: Install statusline system
-    logger.step('Installing statusline v2.14.0...')
+    logger.step('Installing statusline v3.0.0 (lightweight)...')
     await installStatuslineSystem()
     logger.success('Statusline installed')
 
@@ -107,17 +107,17 @@ export async function installCommand(options: InstallOptions = {}) {
     console.log(green('✅ Installation Complete!'))
     console.log(green('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
     console.log()
-    console.log(cyan('✨ Statusline v2.14.0 Features:'))
-    console.log('  • 5-line rich display')
-    console.log('  • Cost tracking (5 dimensions)')
-    console.log('  • MCP server monitoring')
-    console.log('  • Context window usage')
-    console.log('  • Catppuccin theme')
+    console.log(cyan('✨ Statusline v3.0.0 (lightweight):'))
+    console.log('  • 5-line rich display (~2s, was ~20s)')
+    console.log('  • Cost tracking (REPO/30DAY/7DAY/DAY/LIVE)')
+    console.log('  • Burn rate, cache hit %, projection')
+    console.log('  • Usage limits (5H/7DAY)')
+    console.log('  • Catppuccin Mocha theme')
     console.log()
     console.log(yellow('⚠️  Restart Claude Code to activate'))
     console.log()
-    console.log(cyan('📝 Customize:'))
-    console.log(`  ${paths.statuslineDir.replace(paths.home, '~')}/Config.toml`)
+    console.log(cyan('📝 Script:'))
+    console.log(`  ${paths.statuslineDir.replace(paths.home, '~')}/statusline.sh`)
     console.log()
 
   } catch (error) {

@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { paths } from '../utils/fs'
 
 /**
- * Install complete statusline system v2.14.0
- * Copies the entire statusline directory from the package to ~/.claude/statusline
+ * Install lightweight statusline v3.0.0
+ * Copies statusline.sh from the package to ~/.claude/statusline
  */
 export async function installStatuslineSystem(): Promise<void> {
   // Find the statusline directory in the package
