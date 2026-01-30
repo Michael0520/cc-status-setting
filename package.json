@@ -1,6 +1,6 @@
 {
   "name": "@michael0520/claude-status",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "description": "Modern TypeScript CLI for Claude Code status line management",
   "type": "module",
   "packageManager": "pnpm@10.14.0",
@@ -12,7 +12,6 @@
     "statusline"
   ],
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "build": "tsup && pnpm build:shell",
     "build:shell": "node build/generate-shell.js",
     "dev": "tsx src/index.ts",
