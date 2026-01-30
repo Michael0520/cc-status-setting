@@ -5,12 +5,11 @@
 # Replaces the modular 7700-line version with a single ~200-line script.
 # All external calls run in parallel. Executes in <3 seconds.
 #
-# Output (5 lines):
+# Output (4 lines):
 #   Line 1: ~/path (branch) [clean/dirty]
 #   Line 2: Model | Commits:N | CC:X.X.X | HH:MM
-#   Line 3: REPO $X.XX | 30DAY $X.XX | 7DAY $X.XX | DAY $X.XX | LIVE $X.XX
-#   Line 4: $X.XX/hr | Cache: XX% hit | Est: $X.XX (XX.XM)
-#   Line 5: MCP:?/? | 5H at HH:MM (X hr Y min) Z% * 7DAY ... (Z%)
+#   Line 3: 30DAY $X.XX | 7DAY $X.XX | DAY $X.XX | LIVE $X.XX
+#   Line 4: MCP:?/? | 5H at HH:MM (X hr Y min) Z% * 7DAY ... (Z%)
 # ============================================================================
 
 set -euo pipefail
@@ -25,11 +24,8 @@ C_YELLOW=$'\033[38;2;249;226;175m'    # #f9e2af
 C_MAGENTA=$'\033[38;2;203;166;247m'   # #cba6f7
 C_CYAN=$'\033[38;2;137;220;235m'      # #89dceb
 C_WHITE=$'\033[38;2;205;214;244m'     # #cdd6f4
-C_ORANGE=$'\033[38;2;250;179;135m'    # #fab387
 C_TEAL=$'\033[38;2;148;226;213m'      # #94e2d5
 C_GRAY=$'\033[38;2;166;173;200m'      # #a6adc8
-C_DIM=$'\033[2m'
-C_ITALIC=$'\033[3m'
 C_RESET=$'\033[0m'
 SEP="${C_GRAY}|${C_RESET}"
 
@@ -39,10 +35,6 @@ SEP="${C_GRAY}|${C_RESET}"
 input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir // empty')
 model_name=$(echo "$input" | jq -r '.model.display_name // "Claude"')
-
-# Cache tokens from stdin (native Anthropic data)
-cache_read=$(echo "$input" | jq -r '.current_usage.cache_read_input_tokens // 0')
-cache_creation=$(echo "$input" | jq -r '.current_usage.cache_creation_input_tokens // 0')
 
 if [[ -z "$current_dir" || "$current_dir" == "null" ]]; then
     echo "ERROR: missing workspace.current_dir" >&2
@@ -65,13 +57,10 @@ trap 'rm -f ${TMP}_*.json ${TMP}_*.txt 2>/dev/null' EXIT
 # ============================================================================
 # 3. LAUNCH ALL EXTERNAL CALLS IN PARALLEL
 # ============================================================================
-# Compute YYYYMMDD dates for ccusage --since (requires this format, not "7d")
-SINCE_7D=$(date -v-7d +%Y%m%d)
+# Compute YYYYMMDD date for ccusage --since (requires this format, not "7d")
 SINCE_30D=$(date -v-30d +%Y%m%d)
 
-bunx ccusage blocks --active --json          > "${TMP}_blocks.json"  2>/dev/null &
-bunx ccusage session --json                  > "${TMP}_session.json"  2>/dev/null &
-bunx ccusage daily --since "$SINCE_7D" --json  > "${TMP}_daily7.json"   2>/dev/null &
+bunx ccusage blocks --active --json            > "${TMP}_blocks.json"  2>/dev/null &
 bunx ccusage daily --since "$SINCE_30D" --json > "${TMP}_daily30.json"  2>/dev/null &
 
 # Usage limits API (requires OAuth token from keychain)
@@ -119,48 +108,27 @@ wait
 # 6. PARSE ALL JSON RESULTS
 # ============================================================================
 
-# --- REPO cost (from session data, match by current_dir path) ---
-session_id=$(echo "$current_dir" | sed 's|/|-|g')
-repo_cost=$(jq -r --arg sid "$session_id" \
-    '[.sessions[]? | select(.sessionId | contains($sid))] | map(.totalCost // 0) | add // 0' \
-    "${TMP}_session.json" 2>/dev/null || echo "0")
-repo_cost=$(printf "%.2f" "$repo_cost" 2>/dev/null || echo "0.00")
-
 # --- 30DAY cost ---
 cost_30d=$(jq -r '.totals.totalCost // 0' "${TMP}_daily30.json" 2>/dev/null || echo "0")
 cost_30d=$(printf "%.2f" "$cost_30d" 2>/dev/null || echo "0.00")
 
-# --- 7DAY cost (total from 7d query) ---
-cost_7d=$(jq -r '.totals.totalCost // 0' "${TMP}_daily7.json" 2>/dev/null || echo "0")
+# --- 7DAY cost (from 30d data, filter last 7 days) ---
+SINCE_7D_DASH=$(date -v-7d +%Y-%m-%d)
+cost_7d=$(jq -r --arg d "$SINCE_7D_DASH" \
+    '[.daily[]? | select(.date >= $d)] | map(.totalCost // 0) | add // 0' \
+    "${TMP}_daily30.json" 2>/dev/null || echo "0")
 cost_7d=$(printf "%.2f" "$cost_7d" 2>/dev/null || echo "0.00")
 
-# --- DAY cost (today only, from 7d data) ---
+# --- DAY cost (today only, from 30d data) ---
 today_date=$(date +%Y-%m-%d)
 cost_day=$(jq -r --arg d "$today_date" \
     '[.daily[]? | select(.date == $d)] | map(.totalCost // 0) | add // 0' \
-    "${TMP}_daily7.json" 2>/dev/null || echo "0")
+    "${TMP}_daily30.json" 2>/dev/null || echo "0")
 cost_day=$(printf "%.2f" "$cost_day" 2>/dev/null || echo "0.00")
 
-# --- LIVE cost, burn rate, projection (from blocks) ---
+# --- LIVE cost (from blocks) ---
 live_cost=$(jq -r '.blocks[0].costUSD // 0' "${TMP}_blocks.json" 2>/dev/null || echo "0")
 live_cost=$(printf "%.2f" "$live_cost" 2>/dev/null || echo "0.00")
-
-burn_rate=$(jq -r '.blocks[0].burnRate.costPerHour // 0' "${TMP}_blocks.json" 2>/dev/null || echo "0")
-burn_rate=$(printf "%.2f" "$burn_rate" 2>/dev/null || echo "0.00")
-
-proj_cost=$(jq -r '.blocks[0].projection.totalCost // 0' "${TMP}_blocks.json" 2>/dev/null || echo "0")
-proj_cost=$(printf "%.2f" "$proj_cost" 2>/dev/null || echo "0.00")
-
-proj_tokens=$(jq -r '.blocks[0].projection.totalTokens // 0' "${TMP}_blocks.json" 2>/dev/null || echo "0")
-proj_tokens_m=$(awk "BEGIN {printf \"%.1f\", $proj_tokens / 1000000}" 2>/dev/null || echo "0.0")
-
-# --- Cache hit % (from stdin JSON) ---
-cache_total=$((cache_read + cache_creation))
-if [[ "$cache_total" -gt 0 ]]; then
-    cache_pct=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $cache_total}")
-else
-    cache_pct="0"
-fi
 
 # --- Claude version ---
 cc_version=$(head -1 "${TMP}_version.txt" 2>/dev/null | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
@@ -219,7 +187,7 @@ five_hr_clock=$(clock_time "$five_hour_reset")
 seven_day_remaining=$(format_reset "$seven_day_reset")
 
 # ============================================================================
-# 7. FORMAT AND OUTPUT 5 LINES
+# 7. FORMAT AND OUTPUT 4 LINES
 # ============================================================================
 
 # Model emoji
@@ -261,34 +229,31 @@ echo -e "${C_BLUE}${dir_display}${C_RESET} ${branch_display}"
 echo -e "${model_emoji} ${C_CYAN}${model_name}${C_RESET} ${SEP} Commits:${C_GREEN}${commits_today}${C_RESET} ${SEP} CC:${C_TEAL}${cc_version}${C_RESET} ${SEP} 🕐 ${C_WHITE}${now_time}${C_RESET}"
 
 # --- LINE 3: Cost summary ---
-echo -e "REPO ${C_ORANGE}\$${repo_cost}${C_RESET} ${SEP} 30DAY ${C_MAGENTA}\$${cost_30d}${C_RESET} ${SEP} 7DAY ${C_BLUE}\$${cost_7d}${C_RESET} ${SEP} DAY ${C_YELLOW}\$${cost_day}${C_RESET} ${SEP} 🔥LIVE ${C_RED}\$${live_cost}${C_RESET}"
+echo -e "30DAY ${C_MAGENTA}\$${cost_30d}${C_RESET} ${SEP} 7DAY ${C_BLUE}\$${cost_7d}${C_RESET} ${SEP} DAY ${C_YELLOW}\$${cost_day}${C_RESET} ${SEP} 🔥LIVE ${C_RED}\$${live_cost}${C_RESET}"
 
-# --- LINE 4: Burn rate | Cache | Projection ---
-echo -e "🔥${C_ORANGE}\$${burn_rate}/hr${C_RESET} ${SEP} Cache: ${C_TEAL}${cache_pct}% hit${C_RESET} ${SEP} Est: ${C_MAGENTA}\$${proj_cost}${C_RESET} (${C_CYAN}${proj_tokens_m}M${C_RESET})"
-
-# --- LINE 5: MCP + Usage limits ---
-line5="MCP:${C_GRAY}?/?${C_RESET}"
+# --- LINE 4: MCP + Usage limits ---
+line4="MCP:${C_GRAY}?/?${C_RESET}"
 
 if [[ -n "$five_hour_pct" && "$five_hour_pct" != "0" ]]; then
     five_colored=$(color_pct "$five_hour_pct")
     if [[ -n "$five_hr_clock" && "$five_hr_remaining" != "now" && -n "$five_hr_remaining" ]]; then
-        line5="${line5} ${SEP} ⏱ 5H at ${five_hr_clock} (${five_hr_remaining}) ${five_colored}"
+        line4="${line4} ${SEP} ⏱ 5H at ${five_hr_clock} (${five_hr_remaining}) ${five_colored}"
     elif [[ -n "$five_hr_remaining" ]]; then
-        line5="${line5} ${SEP} ⏱ 5H ${five_hr_remaining} (${five_colored})"
+        line4="${line4} ${SEP} ⏱ 5H ${five_hr_remaining} (${five_colored})"
     else
-        line5="${line5} ${SEP} ⏱ 5H ${five_colored}"
+        line4="${line4} ${SEP} ⏱ 5H ${five_colored}"
     fi
 fi
 
 if [[ -n "$seven_day_pct" && "$seven_day_pct" != "0" ]]; then
     seven_colored=$(color_pct "$seven_day_pct")
     if [[ -n "$seven_day_remaining" && "$seven_day_remaining" != "now" ]]; then
-        line5="${line5} • 7DAY ${seven_day_remaining} (${seven_colored})"
+        line4="${line4} • 7DAY ${seven_day_remaining} (${seven_colored})"
     else
-        line5="${line5} • 7DAY (${seven_colored})"
+        line4="${line4} • 7DAY (${seven_colored})"
     fi
 fi
 
-echo -e "$line5"
+echo -e "$line4"
 
 exit 0
