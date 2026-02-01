@@ -34,10 +34,7 @@ Then restart Claude Code.
 | Widget | Color | Position |
 |--------|-------|----------|
 | Model | white | left |
-| Tokens input | brightBlack | left |
-| Tokens total | brightYellow | left |
 | Context % | cyan | left |
-| Block timer | brightMagenta | right |
 | Session cost | brightGreen | right |
 | Session clock | brightBlack | right |
 

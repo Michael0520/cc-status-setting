@@ -40,13 +40,10 @@ cat > ~/.config/ccstatusline/settings.json << 'EOF'
     ],
     [
       { "id": "5", "type": "model", "color": "white" },
-      { "id": "6", "type": "tokens-input", "color": "brightBlack" },
-      { "id": "7", "type": "tokens-total", "color": "brightYellow" },
-      { "id": "8", "type": "context-percentage", "color": "cyan" },
-      { "id": "9", "type": "separator" },
-      { "id": "10", "type": "block-timer", "color": "brightMagenta" },
-      { "id": "11", "type": "session-cost", "color": "brightGreen" },
-      { "id": "12", "type": "session-clock", "color": "brightBlack" }
+      { "id": "6", "type": "context-percentage", "color": "cyan" },
+      { "id": "7", "type": "separator" },
+      { "id": "8", "type": "session-cost", "color": "brightGreen" },
+      { "id": "9", "type": "session-clock", "color": "brightBlack" }
     ]
   ],
   "flexMode": "full-minus-40",
