@@ -32,6 +32,7 @@ cc-status-setting/
 | File | Action |
 |------|--------|
 | `~/.config/ccstatusline/settings.json` | Always overwritten |
+| `~/.config/ccstatusline/claude-ratelimit.sh` | Always overwritten (rate limit helper) |
 | `~/.claude/settings.json` | Merged (only `statusLine` key updated) |
 | `~/.claude/statusline/` | Deleted if exists (old version cleanup) |
 

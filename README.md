@@ -35,14 +35,17 @@ Then restart Claude Code.
 |--------|-------|----------|
 | Model | white | left |
 | Context % | cyan | left |
+| 5h rate limit | brightCyan (→yellow→red) | left |
+| 7d rate limit | brightCyan (→yellow→red) | left |
 | Session cost | brightGreen | right |
 | Session clock | brightBlack | right |
 
 ## Requirements
 
-- macOS / Linux
+- macOS (rate limit display uses macOS Keychain)
 - Node.js (for JSON settings merge)
 - Bun (auto-installed if missing)
+- `jq` and `curl` (standard on macOS)
 
 ## Customization
 
